@@ -82,6 +82,8 @@ module.exports = function(grunt) {
     var archive = archiver.create(mode, exports.options);
     var dest = exports.options.archive;
 
+    var sourcePaths = {};
+
     // Ensure dest folder exists
     grunt.file.mkdir(path.dirname(dest));
 
@@ -94,7 +96,8 @@ module.exports = function(grunt) {
     });
 
     archive.on('entry', function(file) {
-      grunt.verbose.writeln('Archived ' + file.sourcePath.cyan + ' -> ' + String(dest).cyan + '/'.cyan + file.name.cyan);
+      var sp = sourcePaths[file.name] || 'unknown';
+      grunt.verbose.writeln('Archived ' + sp.cyan + ' -> ' + String(dest).cyan + '/'.cyan + file.name.cyan);
     });
 
     destStream.on('error', function(err) {
@@ -122,12 +125,16 @@ module.exports = function(grunt) {
         if (grunt.file.isFile(srcFile)) {
           archive.file(srcFile, fileData);
         } else if (grunt.file.isDir(srcFile)) {
-          fileData.type = 'directory';
-          fileData.sourcePath = srcFile;
+          if (srcFile.slice(-1) !== '/') {
+            fileData.name += '/';
+            srcFile += '/';
+          }
           archive.append(null, fileData);
         } else {
           grunt.fail.warn('srcFile should be a valid file or directory');
         }
+
+        sourcePaths[fileData.name] = srcFile;
       });
     });
 
